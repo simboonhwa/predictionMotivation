@@ -138,6 +138,10 @@ accurarcyRF=postResample(predictRF,testData)
 ## 3. Conclusion
 ###	
 ```{r}
+# Display the accurarcy
 accurarcyCART
 accurarcyRF
+# inspect the predictors that was selected.
+varImp(modelCART)
+varImp(modelRF)
 ```
