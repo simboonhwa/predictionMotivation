@@ -100,7 +100,7 @@ testData = trainClean[-trainSet,]
 The outcome (classe) is observed to be categorise (non-linear), therefore non-linear regression modeling is recommended. Two models (Decision Tree and Random Forest) will be built.
 
 
-```{r,message=TRUE}
+```{r}
 #Decision tree (rpart). rpart function will bootstrap apply
 modelCART=train(classe ~., data=trainData, method="rpart")
 #modelCART$finalModel
