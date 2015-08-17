@@ -93,37 +93,46 @@ testData = trainClean[-trainSet,]
 
 
 ###
-## 3. Dataset Modelling
+## 3. Fit & Strategy for Model Selection
 ## 	a. Non-linear modeling (Decision Tree)
 ###	
 
-The outcome (classe) is observed to be categorise (non-linear), therefore non-linear regression modeling is recommended. Random Forest ...
+The outcome (classe) is observed to be categorise (non-linear), therefore non-linear regression modeling is recommended. Two models (Decision Tree and Random Forest) will be built.
 
 
-```{r}
-#Decision tree (rpart). rpart function will apply bootstrap
+```{r,message=TRUE}
+#Decision tree (rpart). rpart function will bootstrap apply
 modelCART=train(classe ~., data=trainData, method="rpart")
-modelCART$finalModel
+#modelCART$finalModel
 predictCART=predict(modelCART, testData)
 CART=confusionMatrix(testData$classe, predictCART)
+accurarcyCART=postResample(predictCART,testData)
+rmseCART=RMSE(predictCART,testData)
 ```
 
 ###
 ## 	b. Non-linear modeling (Random Tree)
 ###	
 
+The Random Tree model is robust to correlated covariates & outliners.
+
+```{r,message=TRUE}
+# 5 fold cross validation is apply
+controlRF = trainControl(method="cv", 5)
+modelRF = train(classe ~ ., data=trainData, method="rf", trControl=controlRF, ntree=250)
+predictRF=predict(modelRF, testData)
+RF=confusionMatrix(testData$classe, predictRF)
+accurarcyRF=postResample(predictRF,testData)
+rmseRF=RMSE(predictRF,testData)
+```
+
 ```{r}
-#controlRF = trainControl(method="cv", 5)
-#modelRF = train(classe ~ ., data=trainData, method="rf", trControl=controlRF, ntree=250)
-
-#predictRF=predict(modelRF, testData)
-#RF=confusionMatrix(testData$classe, predictRF)
-
-
+# Randown forest with PCA --- option 
+# resource intensive
 # random forest with pca will apply center and scale by default
 # error using 0.8 with muticore
-ctrl = trainControl(preProcOptions = list(thresh = 0.9))
-modelRFPCA = train(classe ~ ., data = trainData, preProcess="pca", trControl = ctrl, method="rf")
-predictRFPCA=predict(modelRFPCA, testData)
-RFPCA=confusionMatrix(testData$classe, predictRFPCA)
+#ctrl = trainControl(preProcOptions = list(thresh = 0.9))
+#modelRFPCA = train(classe ~ ., data = trainData, preProcess="pca", trControl = ctrl, method="rf")
+#predictRFPCA=predict(modelRFPCA, testData)
+#RFPCA=confusionMatrix(testData$classe, predictRFPCA)
 ```
