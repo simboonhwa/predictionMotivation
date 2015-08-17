@@ -137,3 +137,7 @@ accurarcyRF=postResample(predictRF,testData)
 ###
 ## 3. Conclusion
 ###	
+```{r}
+accurarcyCART
+accurarcyRF
+```
