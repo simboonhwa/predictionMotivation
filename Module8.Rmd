@@ -107,7 +107,6 @@ modelCART=train(classe ~., data=trainData, method="rpart")
 predictCART=predict(modelCART, testData)
 CART=confusionMatrix(testData$classe, predictCART)
 accurarcyCART=postResample(predictCART,testData)
-rmseCART=RMSE(predictCART,testData)
 ```
 
 ###
@@ -118,12 +117,11 @@ The Random Tree model is robust to correlated covariates & outliners.
 
 ```{r,message=TRUE}
 # 5 fold cross validation is apply
-controlRF = trainControl(method="cv", 5)
+controlRF = trainControl(method="cv", 2)
 modelRF = train(classe ~ ., data=trainData, method="rf", trControl=controlRF, ntree=250)
 predictRF=predict(modelRF, testData)
 RF=confusionMatrix(testData$classe, predictRF)
 accurarcyRF=postResample(predictRF,testData)
-rmseRF=RMSE(predictRF,testData)
 ```
 
 ```{r}
@@ -136,3 +134,6 @@ rmseRF=RMSE(predictRF,testData)
 #predictRFPCA=predict(modelRFPCA, testData)
 #RFPCA=confusionMatrix(testData$classe, predictRFPCA)
 ```
+###
+## 3. Conclusion
+###	
