@@ -100,13 +100,13 @@ testData = trainClean[-trainSet,]
 The outcome (classe) is observed to be categorise (non-linear), therefore non-linear regression modeling is recommended. Two models (Decision Tree and Random Forest) will be built.
 
 
-```{r}
+```{r,message=TRUE}
 #Decision tree (rpart). rpart function will bootstrap apply
 modelCART=train(classe ~., data=trainData, method="rpart")
 #modelCART$finalModel
 predictCART=predict(modelCART, testData)
 CART=confusionMatrix(testData$classe, predictCART)
-accurarcyCART=postResample(predictCART,testData)
+#accurarcyCART=postResample(predictCART,testData)
 ```
 
 ###
@@ -121,7 +121,7 @@ controlRF = trainControl(method="cv", 2)
 modelRF = train(classe ~ ., data=trainData, method="rf", trControl=controlRF, ntree=250)
 predictRF=predict(modelRF, testData)
 RF=confusionMatrix(testData$classe, predictRF)
-accurarcyRF=postResample(predictRF,testData)
+#accurarcyRF=postResample(predictRF,testData)
 ```
 
 ```{r}
@@ -139,8 +139,8 @@ accurarcyRF=postResample(predictRF,testData)
 ###	
 ```{r}
 # Display the accurarcy
-accurarcyCART
-accurarcyRF
+#accurarcyCART
+#accurarcyRF
 # inspect the predictors that was selected.
 varImp(modelCART)
 varImp(modelRF)
