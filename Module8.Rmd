@@ -135,7 +135,7 @@ RF=confusionMatrix(testData$classe, predictRF)
 #RFPCA=confusionMatrix(testData$classe, predictRFPCA)
 ```
 ###
-## 3. Conclusion
+## 3. Conclusion for model
 ###	
 ```{r}
 # Display the accurarcy
