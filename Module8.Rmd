@@ -106,7 +106,7 @@ modelCART=train(classe ~., data=trainData, method="rpart")
 #modelCART$finalModel
 predictCART=predict(modelCART, testData)
 CART=confusionMatrix(testData$classe, predictCART)
-#accurarcyCART=postResample(predictCART,testData)
+accurarcyRF=postResample(predictRF,testData$classe)
 ```
 
 ###
@@ -121,7 +121,7 @@ controlRF = trainControl(method="cv", 2)
 modelRF = train(classe ~ ., data=trainData, method="rf", trControl=controlRF, ntree=250)
 predictRF=predict(modelRF, testData)
 RF=confusionMatrix(testData$classe, predictRF)
-#accurarcyRF=postResample(predictRF,testData)
+accurarcyRF=postResample(predictRF,testData$classe)
 ```
 
 ```{r}
