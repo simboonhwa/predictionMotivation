@@ -47,42 +47,30 @@ testRaw <- read.csv("./pml-testing.csv")
 ## 2. Exploratorty Data Analysis
 ###	
 
-Since based the outcome (classe), the values gathered through the devices are stored in the column with words "belt", "forearm", "arm", and "dumbell", therefore these predictors (together with classe) are extracted. 
+Since by performing the activities (classe), the values are gathered through the devices and are stored in the column with words "belt", "forearm", "arm", and "dumbell". Therefore these predictors (together with classe) are extracted. 
 
 ```{r}
 mystr = grep("belt|forearm|arm|dumbell|classe", colnames(trainRaw), value = TRUE)
 trainRaw= trainRaw[,mystr]
 
-#remove those columns with all value = NA since this will not add value to the prediction. ??? are identified with on NA value and removed.
+#remove those columns with all value = NA since this will not add value to the prediction. 
 
 # colnames are identified
 coln=colnames(trainRaw [,colSums(is.na( trainRaw )) != 0])
-
-# column index are identify to apply to the test set.
 coli=match(coln,colnames(trainRaw))
 trainClean = trainRaw [,-coli]
 
-# remove those predictors with near Zero Variance since this predictors with thsee property does not contribute to prediction. 34 are identified and removed.
+# remove those predictors with near Zero Variance since this predictors with these property does not contribute to the prediction. 34 are identified and removed.
 temp=nearZeroVar(trainClean)
 trainClean=trainClean[,-temp]
 
-#nzv=nearZeroVar(trainClean, saveMetrics= TRUE)
-#nzv[nzv$nzv,]
-
-#append column index for "near zero var" predicators into coli.
-#coli=c(coli,temp) %>% unique %>% sort
-
-
-#col_names <- names(trainRaw)
-#lapply(trainRaw[,col_names] , factor)
-#temp=lapply(trainRaw[,colnames(trainClean)] , is.factor)
-#str(temp)
 ```
 
 ###
 ## 3. Dataset Slicing
 ###	
 
+The dataset originated from trainRaw are divided into 2 parts. For modelling (trainData) and testing (testData). The validation set will be from the testRaw and this will be used to compute the out of sample error 
 ```{r}
 # Training set & Testing set are preparated using slicing
 set.seed(1234) 
@@ -106,7 +94,7 @@ modelCART=train(classe ~., data=trainData, method="rpart")
 #modelCART$finalModel
 predictCART=predict(modelCART, testData)
 CART=confusionMatrix(testData$classe, predictCART)
-#accurarcyCART=postResample(predictCART,testData)
+accurarcyCART=postResample(predictCART,testData$classe)
 ```
 
 ###
@@ -116,15 +104,15 @@ CART=confusionMatrix(testData$classe, predictCART)
 The Random Tree model is robust to correlated covariates & outliners.
 
 ```{r,message=TRUE}
-# 5 fold cross validation is apply
+# 2 fold cross validation is apply
 controlRF = trainControl(method="cv", 2)
 modelRF = train(classe ~ ., data=trainData, method="rf", trControl=controlRF, ntree=250)
 predictRF=predict(modelRF, testData)
 RF=confusionMatrix(testData$classe, predictRF)
-#accurarcyRF=postResample(predictRF,testData)
+accurarcyRF=postResample(predictRF,testData$classe)
 ```
 
-```{r}
+```{r,message=TRUE}
 # Randown forest with PCA --- option 
 # resource intensive
 # random forest with pca will apply center and scale by default
@@ -137,10 +125,18 @@ RF=confusionMatrix(testData$classe, predictRF)
 ###
 ## 3. Conclusion for model
 ###	
-```{r}
+```{r,message=TRUE}
 # Display the accurarcy
 #accurarcyCART
 #accurarcyRF
+CART
+RF
+```
+
+To select best model with categorise outcome, we will compare accurracy, sensitivity and specificity. It is not suprise that random forest is the best model   
+with accurarcy = 99.3%, sensitivity of at least = 98.6% and specificity = 99.6%.
+
+```{r,message=TRUE}
 # inspect the predictors that was selected.
 varImp(modelCART)
 varImp(modelRF)
