@@ -1,0 +1,143 @@
+---
+title: "Machine Learning: Module 8"
+output:
+  html_document:
+    keep_md: yes
+---
+
+###
+##Title: "Human Activity Recognition"
+###
+## 1. 		Executive Summary	
+###
+
+Data set related to exercise activity obtained from: http://groupware.les.inf.puc-rio.br/har was explored, analyse and model was builded and identify in order to help to predict how well activities (A,B,C,D,E) were performed. "A" is activity perform based on standard specification. Wherease "B","C","D" and "E" are activities which are intentionally performed "badly".
+
+
+
+###
+## 2. Environment preparation
+###	
+
+```{r global_options, include=FALSE, echo=TRUE, message=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+This is optional code to ustilise the mulitcore capability
+```{r,message=FALSE}
+#optional: set multicore
+library(cluster)
+library(parallel)
+library(doSNOW)
+
+coreNumber=max(detectCores(),1)
+cluster=makeCluster(coreNumber, type = "SOCK",outfile="")
+registerDoSNOW(cluster)
+```
+
+Library and files are read in preparation of data exploratory analysis
+```{r, message=FALSE}
+library(caret)
+library(dplyr)
+trainRaw <- read.csv("./pml-training.csv")
+testRaw <- read.csv("./pml-testing.csv")
+```
+
+###
+## 2. Exploratorty Data Analysis
+###	
+
+Since by performing the activities (classe), the values are gathered through the devices and are stored in the column with words "belt", "forearm", "arm", and "dumbell". Therefore these predictors (together with classe) are extracted. 
+
+```{r}
+mystr = grep("belt|forearm|arm|dumbell|classe", colnames(trainRaw), value = TRUE)
+trainRaw= trainRaw[,mystr]
+
+#remove those columns with all value = NA since this will not add value to the prediction. 
+
+# colnames are identified
+coln=colnames(trainRaw [,colSums(is.na( trainRaw )) != 0])
+coli=match(coln,colnames(trainRaw))
+trainClean = trainRaw [,-coli]
+
+# remove those predictors with near Zero Variance since this predictors with these property does not contribute to the prediction. 
+temp=nearZeroVar(trainClean)
+trainClean=trainClean[,-temp]
+
+```
+
+###
+## 3. Dataset Slicing
+###	
+
+The dataset originated from trainRaw are divided into 2 parts. For modelling (trainData) and testing (testData). The validation set will be from the testRaw and this will be used to compute the out of sample error 
+```{r}
+# Training set & Testing set are preparated using slicing
+set.seed(1234) 
+trainSet = createDataPartition(y=trainClean$classe, p=0.7, list=F)
+trainData = trainClean[trainSet,]
+testData = trainClean[-trainSet,]
+```
+
+
+###
+## 3. Fit & Strategy for Model Selection
+## 	a. Non-linear modeling (Decision Tree)
+###	
+
+The outcome (classe) is observed to be categorise (non-linear), therefore non-linear regression modeling is recommended. Two models (Decision Tree and Random Forest) will be built.
+
+
+```{r,message=TRUE}
+#Decision tree (rpart). rpart function will bootstrap apply
+modelCART=train(classe ~., data=trainData, method="rpart")
+#modelCART$finalModel
+predictCART=predict(modelCART, testData)
+CART=confusionMatrix(testData$classe, predictCART)
+accurarcyCART=postResample(predictCART,testData$classe)
+```
+
+###
+## 	b. Non-linear modeling (Random Tree)
+###	
+
+The Random Tree model is robust to correlated covariates & outliners.
+
+```{r,message=TRUE}
+# 2 fold cross validation is apply
+controlRF = trainControl(method="cv", 2)
+modelRF = train(classe ~ ., data=trainData, method="rf", trControl=controlRF, ntree=250)
+predictRF=predict(modelRF, testData)
+RF=confusionMatrix(testData$classe, predictRF)
+accurarcyRF=postResample(predictRF,testData$classe)
+```
+
+```{r,message=TRUE}
+# Randown forest with PCA --- option 
+# resource intensive
+# random forest with pca will apply center and scale by default
+# error using 0.8 with muticore
+#ctrl = trainControl(preProcOptions = list(thresh = 0.9))
+#modelRFPCA = train(classe ~ ., data = trainData, preProcess="pca", trControl = ctrl, method="rf")
+#predictRFPCA=predict(modelRFPCA, testData)
+#RFPCA=confusionMatrix(testData$classe, predictRFPCA)
+```
+###
+## 3. Conclusion for model
+###	
+```{r,message=TRUE}
+# Display the accurarcy
+#accurarcyCART
+#accurarcyRF
+CART
+RF
+```
+
+To select best model with categorise outcome, we will compare accurracy, sensitivity and specificity. It is not suprise that random forest is the best model   
+with accurarcy = 99.3%, sensitivity of at least = 98.6% and specificity = 99.6%.
+
+```{r,message=TRUE}
+# inspect the predictors that was selected.
+varImp(modelCART)
+varImp(modelRF)
+```
