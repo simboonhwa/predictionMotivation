@@ -140,7 +140,7 @@ trainClean=trainClean[,-temp]</code></pre>
 <p>The dataset originated from trainRaw are divided into 3 parts.</p>
 <ol style="list-style-type: decimal">
 <li>trainData: To train the model</li>
-<li>valData: To cross validate and out of sample estimation on the quality of the model and therefore from there select the best model.</li>
+<li>valData: To cross validate and estimation the quality of the model and therefore select the best model.</li>
 <li>testData: To assess the performance of the final model selected.</li>
 </ol>
 <p>The model will be train using trainData and testing (testData). The validation set will be from the testRaw and this will be used to compute the out of sample error</p>
@@ -271,6 +271,7 @@ CART</code></pre>
 ## Detection Prevalence   0.2845   0.1934   0.1744   0.1638   0.1839
 ## Balanced Accuracy      0.9975   0.9961   0.9923   0.9897   0.9994</code></pre>
 <p>To select best model with categorise outcome, we will compare accurracy, sensitivity and specificity. It is not suprise that random forest is the best model<br />with accurarcy = 99.3%, sensitivity of at least = 98.1% and specificity = 99.6%.</p>
+<p>The estimate out of sample error is 0.6% (from Human Activity Recognition website). The error from selected model is 0.7% (1-0.993).</p>
 </div>
 <div id="section-15" class="section level3">
 <h3></h3>
@@ -286,7 +287,6 @@ postResample(predictModel,testData$classe)</code></pre>
 <pre><code>##  Accuracy     Kappa 
 ## 0.9925221 0.9905415</code></pre>
 <p>The accurarcy from test set is still 99.3%. Therefore given 20 samples, we can expect the selected model is able to provide 100% accurarcy on the prediction.</p>
-<p>From the test set, the</p>
 <pre class="r"><code># inspect the predictors that was selected.
 varImp(modelRF)</code></pre>
 <pre><code>## rf variable importance

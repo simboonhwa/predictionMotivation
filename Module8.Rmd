@@ -83,7 +83,7 @@ The dataset originated from trainRaw are divided into 3 parts.
 
 
 1. trainData: To train the model
-2. valData: To cross validate and out of sample estimation on the quality of the model and therefore from there select the best model.
+2. valData: To cross validate and estimation the quality of the model and therefore select the best model.
 3. testData: To assess the performance of the final model selected.
  
 The model will be train using trainData and testing (testData). The validation set will be from the testRaw and this will be used to compute the out of sample error 
@@ -153,6 +153,8 @@ RF
 To select best model with categorise outcome, we will compare accurracy, sensitivity and specificity. It is not suprise that random forest is the best model   
 with accurarcy = 99.3%, sensitivity of at least = 98.1% and specificity = 99.6%.
 
+The estimate out of sample error is 0.6% (from Human Activity Recognition website). The error from selected model is 0.7% (1-0.993).
+  
 ###
 ## 4. Conclusion for Model selected
 ###	
