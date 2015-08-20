@@ -13,7 +13,7 @@ output:
 
 Data set related to exercise activity obtained from: http://groupware.les.inf.puc-rio.br/har was explored, analyse and model was builded and identify in order to help to predict how well activities (A,B,C,D,E) were performed. "A" is activity perform based on standard specification. Wherease "B","C","D" and "E" are activities which are intentionally performed "badly".
 
-
+By using the Random Tree model, we can expect 100% accurary if run the model against 20 samples.
 
 ###
 ## 2. Environment preparation
@@ -47,38 +47,57 @@ testRaw <- read.csv("./pml-testing.csv")
 ## 2. Exploratorty Data Analysis
 ###	
 
+To avoid overfitting, we will identify predictors with the following guidelines:
+
+1. Based on our knowledge and understanding, predictors contribute to the outcome (classe) are identified and included as predictors
+2. Predictors with "NA" as values in the ALL column are identified and removed.
+3. Preictors with zero variance are identified and removed.
+ 
 Since by performing the activities (classe), the values are gathered through the devices and are stored in the column with words "belt", "forearm", "arm", and "dumbell". Therefore these predictors (together with classe) are extracted. 
 
 ```{r}
 mystr = grep("belt|forearm|arm|dumbell|classe", colnames(trainRaw), value = TRUE)
 trainRaw= trainRaw[,mystr]
+```
 
-#remove those columns with all value = NA since this will not add value to the prediction. 
+Predictors with with all values = NA are removed since this will not add value to the prediction. 
 
+```{r}
 # colnames are identified
 coln=colnames(trainRaw [,colSums(is.na( trainRaw )) != 0])
 coli=match(coln,colnames(trainRaw))
 trainClean = trainRaw [,-coli]
+```
 
-# remove those predictors with near Zero Variance since this predictors with these property does not contribute to the prediction. 
+Predictors with near Zero Variance are removed since this predictors with these property does not contribute to the prediction. 34 are identified and removed.
+```{r}
 temp=nearZeroVar(trainClean)
 trainClean=trainClean[,-temp]
-
 ```
 
 ###
 ## 3. Dataset Slicing
 ###	
 
-The dataset originated from trainRaw are divided into 2 parts. For modelling (trainData) and testing (testData). The validation set will be from the testRaw and this will be used to compute the out of sample error 
+The dataset originated from trainRaw are divided into 3 parts. 
+
+
+1. trainData: To train the model
+2. valData: To cross validate and out of sample estimation on the quality of the model and therefore from there select the best model.
+3. testData: To assess the performance of the final model selected.
+ 
+The model will be train using trainData and testing (testData). The validation set will be from the testRaw and this will be used to compute the out of sample error 
 ```{r}
 # Training set & Testing set are preparated using slicing
 set.seed(1234) 
 trainSet = createDataPartition(y=trainClean$classe, p=0.7, list=F)
 trainData = trainClean[trainSet,]
 testData = trainClean[-trainSet,]
+valClean = trainClean[-trainSet,]
+valSet = createDataPartition(y=valClean$classe, p=0.5, list=F) 
+valData = valClean[-valSet,]
+testData = valClean[-valSet,]
 ```
-
 
 ###
 ## 3. Fit & Strategy for Model Selection
@@ -92,9 +111,8 @@ The outcome (classe) is observed to be categorise (non-linear), therefore non-li
 #Decision tree (rpart). rpart function will bootstrap apply
 modelCART=train(classe ~., data=trainData, method="rpart")
 #modelCART$finalModel
-predictCART=predict(modelCART, testData)
-CART=confusionMatrix(testData$classe, predictCART)
-accurarcyCART=postResample(predictCART,testData$classe)
+predictCART=predict(modelCART, valData)
+CART=confusionMatrix(valData$classe, predictCART)
 ```
 
 ###
@@ -107,11 +125,12 @@ The Random Tree model is robust to correlated covariates & outliners.
 # 2 fold cross validation is apply
 controlRF = trainControl(method="cv", 2)
 modelRF = train(classe ~ ., data=trainData, method="rf", trControl=controlRF, ntree=250)
-predictRF=predict(modelRF, testData)
-RF=confusionMatrix(testData$classe, predictRF)
-accurarcyRF=postResample(predictRF,testData$classe)
+# valData are used to x-validate the model and out-of-sample measurement on the model trained.
+predictRF=predict(modelRF, valData)
+RF=confusionMatrix(valData$classe, predictRF)
 ```
 
+Optional: Others model tried.
 ```{r,message=TRUE}
 # Randown forest with PCA --- option 
 # resource intensive
@@ -123,21 +142,29 @@ accurarcyRF=postResample(predictRF,testData$classe)
 #RFPCA=confusionMatrix(testData$classe, predictRFPCA)
 ```
 ###
-## 3. Conclusion for model
+## 3. Model Selection
 ###	
 ```{r,message=TRUE}
 # Display the accurarcy
-#accurarcyCART
-#accurarcyRF
 CART
 RF
 ```
 
 To select best model with categorise outcome, we will compare accurracy, sensitivity and specificity. It is not suprise that random forest is the best model   
-with accurarcy = 99.3%, sensitivity of at least = 98.6% and specificity = 99.6%.
+with accurarcy = 99.3%, sensitivity of at least = 98.1% and specificity = 99.6%.
+
+###
+## 4. Conclusion for Model selected
+###	
+```{r,message=TRUE}
+predictModel=predict(modelRF, testData)
+#RF=confusionMatrix(valData$classe, predictRF)
+postResample(predictModel,testData$classe)
+```
+
+The accurarcy from test set is still 99.3%. Therefore given 20 samples, we can expect the selected model is able to provide 100% accurarcy on the prediction.
 
 ```{r,message=TRUE}
 # inspect the predictors that was selected.
-varImp(modelCART)
 varImp(modelRF)
 ```

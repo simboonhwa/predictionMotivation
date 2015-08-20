@@ -8,7 +8,7 @@
 
 Data set related to exercise activity obtained from: http://groupware.les.inf.puc-rio.br/har was explored, analyse and model was builded and identify in order to help to predict how well activities (A,B,C,D,E) were performed. "A" is activity perform based on standard specification. Wherease "B","C","D" and "E" are activities which are intentionally performed "badly".
 
-
+By using the Random Tree model, we can expect 100% accurary if run the model against 20 samples.
 
 ###
 ## 2. Environment preparation
@@ -42,21 +42,33 @@ testRaw <- read.csv("./pml-testing.csv")
 ## 2. Exploratorty Data Analysis
 ###	
 
+To avoid overfitting, we will identify predictors with the following guidelines:
+
+1. Based on our knowledge and understanding, predictors contribute to the outcome (classe) are identified and included as predictors
+2. Predictors with "NA" as values in the ALL column are identified and removed.
+3. Preictors with zero variance are identified and removed.
+ 
 Since by performing the activities (classe), the values are gathered through the devices and are stored in the column with words "belt", "forearm", "arm", and "dumbell". Therefore these predictors (together with classe) are extracted. 
 
 
 ```r
 mystr = grep("belt|forearm|arm|dumbell|classe", colnames(trainRaw), value = TRUE)
 trainRaw= trainRaw[,mystr]
+```
 
-#remove those columns with all value = NA since this will not add value to the prediction. 
+Predictors with with all values = NA are removed since this will not add value to the prediction. 
 
+
+```r
 # colnames are identified
 coln=colnames(trainRaw [,colSums(is.na( trainRaw )) != 0])
 coli=match(coln,colnames(trainRaw))
 trainClean = trainRaw [,-coli]
+```
 
-# remove those predictors with near Zero Variance since this predictors with these property does not contribute to the prediction. 34 are identified and removed.
+Predictors with near Zero Variance are removed since this predictors with these property does not contribute to the prediction. 34 are identified and removed.
+
+```r
 temp=nearZeroVar(trainClean)
 trainClean=trainClean[,-temp]
 ```
@@ -65,7 +77,14 @@ trainClean=trainClean[,-temp]
 ## 3. Dataset Slicing
 ###	
 
-The dataset originated from trainRaw are divided into 2 parts. For modelling (trainData) and testing (testData). The validation set will be from the testRaw and this will be used to compute the out of sample error 
+The dataset originated from trainRaw are divided into 3 parts. 
+
+
+1. trainData: To train the model
+2. valData: To cross validate and out of sample estimation on the quality of the model and therefore from there select the best model.
+3. testData: To assess the performance of the final model selected.
+ 
+The model will be train using trainData and testing (testData). The validation set will be from the testRaw and this will be used to compute the out of sample error 
 
 ```r
 # Training set & Testing set are preparated using slicing
@@ -73,8 +92,11 @@ set.seed(1234)
 trainSet = createDataPartition(y=trainClean$classe, p=0.7, list=F)
 trainData = trainClean[trainSet,]
 testData = trainClean[-trainSet,]
+valClean = trainClean[-trainSet,]
+valSet = createDataPartition(y=valClean$classe, p=0.5, list=F) 
+valData = valClean[-valSet,]
+testData = valClean[-valSet,]
 ```
-
 
 ###
 ## 3. Fit & Strategy for Model Selection
@@ -89,9 +111,8 @@ The outcome (classe) is observed to be categorise (non-linear), therefore non-li
 #Decision tree (rpart). rpart function will bootstrap apply
 modelCART=train(classe ~., data=trainData, method="rpart")
 #modelCART$finalModel
-predictCART=predict(modelCART, testData)
-CART=confusionMatrix(testData$classe, predictCART)
-accurarcyCART=postResample(predictCART,testData$classe)
+predictCART=predict(modelCART, valData)
+CART=confusionMatrix(valData$classe, predictCART)
 ```
 
 ###
@@ -105,11 +126,12 @@ The Random Tree model is robust to correlated covariates & outliners.
 # 2 fold cross validation is apply
 controlRF = trainControl(method="cv", 2)
 modelRF = train(classe ~ ., data=trainData, method="rf", trControl=controlRF, ntree=250)
-predictRF=predict(modelRF, testData)
-RF=confusionMatrix(testData$classe, predictRF)
-accurarcyRF=postResample(predictRF,testData$classe)
+# valData are used to x-validate the model and out-of-sample measurement on the model trained.
+predictRF=predict(modelRF, valData)
+RF=confusionMatrix(valData$classe, predictRF)
 ```
 
+Optional: Others model tried.
 
 ```r
 # Randown forest with PCA --- option 
@@ -122,13 +144,11 @@ accurarcyRF=postResample(predictRF,testData$classe)
 #RFPCA=confusionMatrix(testData$classe, predictRFPCA)
 ```
 ###
-## 3. Conclusion for model
+## 3. Model Selection
 ###	
 
 ```r
 # Display the accurarcy
-#accurarcyCART
-#accurarcyRF
 CART
 ```
 
@@ -136,34 +156,34 @@ CART
 ## Confusion Matrix and Statistics
 ## 
 ##           Reference
-## Prediction    A    B    C    D    E
-##          A 1244    3   90  328    9
-##          B  265  218  366  288    2
-##          C  243   22  404  357    0
-##          D  133   10   72  645  104
-##          E   97   10  221  128  626
+## Prediction   A   B   C   D   E
+##          A 614   2  40 174   7
+##          B 127 109 193 140   0
+##          C 125  13 190 185   0
+##          D  58   5  41 322  56
+##          E  55   7 109  60 310
 ## 
 ## Overall Statistics
 ##                                           
-##                Accuracy : 0.5331          
-##                  95% CI : (0.5202, 0.5459)
-##     No Information Rate : 0.3368          
+##                Accuracy : 0.5252          
+##                  95% CI : (0.5069, 0.5433)
+##     No Information Rate : 0.3328          
 ##     P-Value [Acc > NIR] : < 2.2e-16       
 ##                                           
-##                   Kappa : 0.4087          
+##                   Kappa : 0.399           
 ##  Mcnemar's Test P-Value : < 2.2e-16       
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.6276  0.82890  0.35039   0.3694   0.8448
-## Specificity            0.8898  0.83618  0.86855   0.9229   0.9114
-## Pos Pred Value         0.7431  0.19140  0.39376   0.6691   0.5786
-## Neg Pred Value         0.8247  0.99052  0.84585   0.7763   0.9761
-## Prevalence             0.3368  0.04469  0.19592   0.2967   0.1259
-## Detection Rate         0.2114  0.03704  0.06865   0.1096   0.1064
-## Detection Prevalence   0.2845  0.19354  0.17434   0.1638   0.1839
-## Balanced Accuracy      0.7587  0.83254  0.60947   0.6462   0.8781
+## Sensitivity            0.6272  0.80147  0.33159   0.3655   0.8311
+## Specificity            0.8864  0.83607  0.86366   0.9224   0.9101
+## Pos Pred Value         0.7336  0.19156  0.37037   0.6680   0.5730
+## Neg Pred Value         0.8266  0.98862  0.84232   0.7728   0.9738
+## Prevalence             0.3328  0.04623  0.19477   0.2995   0.1268
+## Detection Rate         0.2087  0.03705  0.06458   0.1094   0.1054
+## Detection Prevalence   0.2845  0.19341  0.17437   0.1638   0.1839
+## Balanced Accuracy      0.7568  0.81877  0.59762   0.6439   0.8706
 ```
 
 ```r
@@ -174,74 +194,60 @@ RF
 ## Confusion Matrix and Statistics
 ## 
 ##           Reference
-## Prediction    A    B    C    D    E
-##          A 1673    1    0    0    0
-##          B    4 1132    3    0    0
-##          C    0    9 1010    7    0
-##          D    0    2   11  951    0
-##          E    0    1    0    3 1078
+## Prediction   A   B   C   D   E
+##          A 834   0   0   3   0
+##          B   1 567   1   0   0
+##          C   1   4 504   4   0
+##          D   1   0   4 477   0
+##          E   0   0   1   2 538
 ## 
 ## Overall Statistics
-##                                          
-##                Accuracy : 0.993          
-##                  95% CI : (0.9906, 0.995)
-##     No Information Rate : 0.285          
-##     P-Value [Acc > NIR] : < 2.2e-16      
-##                                          
-##                   Kappa : 0.9912         
-##  Mcnemar's Test P-Value : NA             
+##                                           
+##                Accuracy : 0.9925          
+##                  95% CI : (0.9887, 0.9953)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc > NIR] : < 2.2e-16       
+##                                           
+##                   Kappa : 0.9905          
+##  Mcnemar's Test P-Value : NA              
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9976   0.9886   0.9863   0.9896   1.0000
-## Specificity            0.9998   0.9985   0.9967   0.9974   0.9992
-## Pos Pred Value         0.9994   0.9939   0.9844   0.9865   0.9963
-## Neg Pred Value         0.9991   0.9973   0.9971   0.9980   1.0000
-## Prevalence             0.2850   0.1946   0.1740   0.1633   0.1832
-## Detection Rate         0.2843   0.1924   0.1716   0.1616   0.1832
-## Detection Prevalence   0.2845   0.1935   0.1743   0.1638   0.1839
-## Balanced Accuracy      0.9987   0.9936   0.9915   0.9935   0.9996
+## Sensitivity            0.9964   0.9930   0.9882   0.9815   1.0000
+## Specificity            0.9986   0.9992   0.9963   0.9980   0.9988
+## Pos Pred Value         0.9964   0.9965   0.9825   0.9896   0.9945
+## Neg Pred Value         0.9986   0.9983   0.9975   0.9963   1.0000
+## Prevalence             0.2845   0.1941   0.1734   0.1652   0.1829
+## Detection Rate         0.2835   0.1927   0.1713   0.1621   0.1829
+## Detection Prevalence   0.2845   0.1934   0.1744   0.1638   0.1839
+## Balanced Accuracy      0.9975   0.9961   0.9923   0.9897   0.9994
 ```
 
 To select best model with categorise outcome, we will compare accurracy, sensitivity and specificity. It is not suprise that random forest is the best model   
-with accurarcy = 99.3%, sensitivity of at least = 98.6% and specificity = 99.6%.
+with accurarcy = 99.3%, sensitivity of at least = 98.1% and specificity = 99.6%.
 
+###
+## 4. Conclusion for Model selected
+###	
+
+```r
+predictModel=predict(modelRF, testData)
+#RF=confusionMatrix(valData$classe, predictRF)
+postResample(predictModel,testData$classe)
+```
+
+```
+##  Accuracy     Kappa 
+## 0.9925221 0.9905415
+```
+
+The accurarcy from test set is still 99.3%. Therefore given 20 samples, we can expect the selected model is able to provide 100% accurarcy on the prediction.
+
+From the test set, the 
 
 ```r
 # inspect the predictors that was selected.
-varImp(modelCART)
-```
-
-```
-## rpart variable importance
-## 
-##   only 20 most important variables shown (out of 39)
-## 
-##                     Overall
-## pitch_forearm        100.00
-## roll_belt             97.70
-## roll_forearm          90.66
-## yaw_belt              48.21
-## magnet_belt_y         40.91
-## accel_forearm_x       37.31
-## accel_belt_z          35.12
-## pitch_belt            33.64
-## total_accel_belt      29.91
-## gyros_belt_z          22.05
-## roll_arm              21.68
-## magnet_arm_x          20.72
-## accel_arm_x           20.69
-## yaw_arm               18.40
-## gyros_arm_y            0.00
-## gyros_arm_z            0.00
-## magnet_forearm_y       0.00
-## total_accel_forearm    0.00
-## magnet_arm_z           0.00
-## gyros_belt_x           0.00
-```
-
-```r
 varImp(modelRF)
 ```
 
@@ -251,24 +257,24 @@ varImp(modelRF)
 ##   only 20 most important variables shown (out of 39)
 ## 
 ##                  Overall
-## roll_belt        100.000
-## yaw_belt          75.284
-## pitch_forearm     70.284
-## pitch_belt        62.096
-## roll_forearm      49.291
-## magnet_forearm_z  21.812
-## accel_forearm_z   20.005
-## accel_forearm_x   18.998
-## magnet_belt_z     17.013
-## roll_arm          16.854
-## magnet_belt_x     14.413
-## yaw_arm           14.251
-## accel_belt_z      14.001
-## magnet_belt_y     13.216
-## yaw_forearm       11.921
-## magnet_forearm_y  11.751
-## gyros_arm_y        8.406
-## accel_forearm_y    8.382
-## magnet_arm_x       8.346
-## magnet_arm_y       8.191
+## roll_belt         100.00
+## yaw_belt           85.70
+## pitch_forearm      68.39
+## pitch_belt         66.95
+## roll_forearm       56.14
+## magnet_belt_z      42.99
+## accel_belt_z       40.98
+## roll_arm           39.97
+## magnet_belt_y      36.55
+## accel_forearm_x    35.81
+## magnet_forearm_z   31.20
+## magnet_forearm_y   29.66
+## magnet_forearm_x   28.33
+## magnet_arm_y       28.00
+## accel_arm_x        27.68
+## accel_forearm_z    27.22
+## magnet_arm_x       27.16
+## gyros_belt_z       24.83
+## yaw_forearm        24.40
+## magnet_belt_x      24.27
 ```
